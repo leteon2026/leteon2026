@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>로그인 | LETEON 레테온</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @view-transition { navigation: auto; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { background-color: #050505; background-image: radial-gradient(ellipse 900px 700px at -10% 0%, rgba(163,230,53,0.07) 0%, transparent 100%); min-height: 100vh; display: flex; flex-direction: column; }
+    .glass-card-strong { background: rgba(9,9,11,0.75); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); border: 1px solid rgba(255,255,255,0.1); }
+    .glass-input { background: rgba(255,255,255,0.05); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); color: white; outline: none; transition: border-color 0.2s, background 0.2s; }
+    .glass-input:focus { border-color: rgba(163,230,53,0.6); background: rgba(255,255,255,0.07); }
+    .glass-input::placeholder { color: rgba(161,161,170,0.5); }
+    @media (max-width: 640px) { input, select, textarea { font-size: 16px !important; } }
+    @keyframes vt-fade-in { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes vt-slide-up { from { transform: translateY(10px); } to { transform: translateY(0); } }
+    ::view-transition-old(root) { animation: 160ms ease-in both vt-fade-in reverse; }
+    ::view-transition-new(root) { animation: 260ms cubic-bezier(0.25,0.46,0.45,0.94) both vt-fade-in, 260ms cubic-bezier(0.25,0.46,0.45,0.94) both vt-slide-up; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .animate-spin { animation: spin 1s linear infinite; }
+  </style>
+</head>
+<body class="text-white antialiased">
+
+  <main class="flex-1 flex items-center justify-center px-4 py-10">
+    <div class="w-full max-w-sm">
+      <div class="text-center mb-8">
+        <a href="index.html" class="inline-block">
+          <p class="text-3xl font-black text-lime-400 tracking-widest">LETEON</p>
+          <p class="mt-0.5 text-zinc-500 text-xs font-medium tracking-widest uppercase">Korea Bike Marketplace</p>
+        </a>
+      </div>
+
+      <div class="glass-card-strong rounded p-7 shadow-2xl shadow-black/50">
+        <h1 class="text-base font-bold text-white mb-1 text-center">로그인</h1>
+        <p class="text-zinc-500 text-sm text-center mb-6">이메일과 비밀번호를 입력하세요</p>
+
+        <div id="msg-success" class="hidden mb-5 p-3 bg-lime-400/10 border border-lime-400/30 rounded text-sm text-lime-400 text-center"></div>
+        <div id="msg-error" class="hidden mb-5 p-3 bg-red-500/10 border border-red-500/30 rounded text-sm text-red-400 text-center"></div>
+
+        <form id="login-form" class="space-y-4" novalidate>
+          <div>
+            <label class="block text-xs font-semibold text-zinc-400 mb-1.5 tracking-wide uppercase">이메일</label>
+            <input id="email" type="email" autocomplete="email" placeholder="example@email.com"
+              class="w-full glass-input rounded px-4 py-2.5 text-sm" required>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-zinc-400 mb-1.5 tracking-wide uppercase">비밀번호</label>
+            <div class="relative">
+              <input id="password" type="password" autocomplete="current-password" placeholder="••••••••"
+                class="w-full glass-input rounded px-4 py-2.5 pr-11 text-sm" required>
+              <button type="button" id="toggle-pw" class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors" tabindex="-1">
+                <svg id="eye-icon" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <button type="submit" id="submit-btn"
+            class="w-full bg-lime-400 hover:bg-lime-300 active:bg-lime-500 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-bold py-3 px-4 rounded transition-colors text-sm mt-2 active:scale-[0.96]">
+            로그인
+          </button>
+        </form>
+
+        <p class="mt-5 text-center text-sm text-zinc-500">
+          계정이 없으신가요? <a href="signup.html" class="text-lime-400 hover:text-lime-300 font-medium">회원가입</a>
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script>
+    const SUPABASE_URL = 'https://ytxrbayjaebiiquprhlx.supabase.co'
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0eHJiYXlqYWViaWlxdXByaGx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MzIxMjUsImV4cCI6MjA5ODMwODEyNX0.9VZNyaPECXbfi2bnyVb4LIgJhh7DTExDFydS-ahlvHg'
+    const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+    // Check message param
+    const params = new URLSearchParams(location.search)
+    if (params.get('message')) {
+      const el = document.getElementById('msg-success')
+      el.textContent = params.get('message')
+      el.classList.remove('hidden')
+    }
+
+    // Toggle password
+    let showPw = false
+    document.getElementById('toggle-pw').addEventListener('click', () => {
+      showPw = !showPw
+      document.getElementById('password').type = showPw ? 'text' : 'password'
+      document.getElementById('eye-icon').innerHTML = showPw
+        ? `<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`
+        : `<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>`
+    })
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault()
+      const errEl = document.getElementById('msg-error')
+      const btn = document.getElementById('submit-btn')
+      errEl.classList.add('hidden')
+      btn.disabled = true
+      btn.innerHTML = `<span class="flex items-center justify-center gap-2"><svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>로그인 중...</span>`
+
+      const email = document.getElementById('email').value.trim()
+      const password = document.getElementById('password').value
+
+      const { data, error } = await _sb.auth.signInWithPassword({ email, password })
+
+      if (error) {
+        errEl.textContent = '이메일 또는 비밀번호를 확인해주세요.'
+        errEl.classList.remove('hidden')
+        btn.disabled = false
+        btn.textContent = '로그인'
+        return
+      }
+
+      if (data.user) {
+        const { data: profile } = await _sb.from('profiles').select('deleted_at').eq('id', data.user.id).maybeSingle()
+        if (profile?.deleted_at) {
+          await _sb.auth.signOut()
+          errEl.textContent = '탈퇴된 계정입니다. 문의가 필요하시면 고객센터로 연락해주세요.'
+          errEl.classList.remove('hidden')
+          btn.disabled = false
+          btn.textContent = '로그인'
+          return
+        }
+      }
+
+      const next = params.get('next') || 'index.html'
+      window.location.href = next
+    })
+  </script>
+</body>
+</html>

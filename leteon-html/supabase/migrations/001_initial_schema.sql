@@ -1,0 +1,8 @@
+-- Migration 001: Initial schema
+-- Applied: 2026-06-29
+-- Description: 초기 테이블 생성 (profiles, listings, hearts, payments)
+--
+-- 이 파일은 이미 적용된 마이그레이션의 기록입니다.
+-- 새 DB에 처음 세팅할 때는 supabase/schema.sql 전체를 실행하세요.
+--
+-- 절대 이 파일을 수정하지 마세요. 변경이 필요하면 새 migration 파일을 만드세요.

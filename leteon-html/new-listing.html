@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>매물 등록 | LETEON 레테온</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @view-transition { navigation: auto; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { background-color: #050505; background-image: radial-gradient(ellipse 900px 700px at -10% 0%, rgba(163,230,53,0.07) 0%, transparent 100%); min-height: 100vh; display: flex; flex-direction: column; }
+    .glass-card { background: rgba(24,24,27,0.6); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
+    .glass-card-strong { background: rgba(9,9,11,0.75); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); border: 1px solid rgba(255,255,255,0.1); }
+    .glass-input { background: rgba(255,255,255,0.05); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); color: white; outline: none; transition: border-color 0.2s, background 0.2s; }
+    .glass-input:focus { border-color: rgba(163,230,53,0.6); background: rgba(255,255,255,0.07); }
+    .glass-input::placeholder { color: rgba(161,161,170,0.5); }
+    .glass-input option { background: #18181b; color: white; }
+    .line-clamp-1 { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; }
+    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #0a0a0a; } ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+    @media (max-width: 640px) { input, select, textarea { font-size: 16px !important; } }
+    @keyframes vt-fade-in { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes vt-slide-up { from { transform: translateY(10px); } to { transform: translateY(0); } }
+    ::view-transition-old(root) { animation: 160ms ease-in both vt-fade-in reverse; }
+    ::view-transition-new(root) { animation: 260ms cubic-bezier(0.25,0.46,0.45,0.94) both vt-fade-in, 260ms cubic-bezier(0.25,0.46,0.45,0.94) both vt-slide-up; }
+    ::view-transition-group(site-header) { animation: none; z-index: 100; }
+    ::view-transition-old(site-header) { display: none; }
+    ::view-transition-new(site-header) { animation: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .animate-spin { animation: spin 1s linear infinite; }
+    .img-thumb { position: relative; aspect-ratio: 1; background: #18181b; border-radius: 0.5rem; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); }
+    .drop-zone { border: 2px dashed rgba(255,255,255,0.15); border-radius: 0.5rem; transition: border-color 0.2s, background 0.2s; }
+    .drop-zone.dragover { border-color: rgba(163,230,53,0.5); background: rgba(163,230,53,0.05); }
+  </style>
+</head>
+<body class="text-white antialiased">
+  <div id="header-placeholder"></div>
+
+  <main class="flex-1">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 py-10">
+      <h1 class="text-3xl font-black text-white mb-2">매물 등록</h1>
+      <p class="text-zinc-500 text-sm mb-8">등록 후 30일이 지나야 삭제할 수 있습니다.</p>
+
+      <!-- Step indicator -->
+      <div class="flex items-center gap-2 mb-8">
+        <div id="step1-ind" class="flex items-center gap-2">
+          <div class="w-6 h-6 rounded-full bg-lime-400 text-zinc-950 text-xs font-bold flex items-center justify-center">1</div>
+          <span class="text-xs font-semibold text-lime-400">정보 입력</span>
+        </div>
+        <div class="flex-1 h-px bg-white/10 mx-2"></div>
+        <div id="step2-ind" class="flex items-center gap-2 opacity-40">
+          <div id="step2-num" class="w-6 h-6 rounded-full bg-zinc-700 text-zinc-300 text-xs font-bold flex items-center justify-center">2</div>
+          <span id="step2-label" class="text-xs font-semibold text-zinc-400">확인</span>
+        </div>
+      </div>
+
+      <!-- STEP 1: Form -->
+      <div id="step1">
+        <div id="form-error" class="hidden mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded text-sm text-red-400"></div>
+
+        <div class="space-y-5">
+          <!-- 이미지 업로더 -->
+          <div>
+            <label class="block text-xs font-semibold text-zinc-400 mb-2 tracking-wide uppercase">사진 <span class="text-zinc-600 font-normal">(최대 10장)</span></label>
+            <div id="img-grid" class="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-3">
+              <!-- thumbnails injected here -->
+            </div>
+            <div id="drop-zone" class="drop-zone flex flex-col items-center justify-center py-8 cursor-pointer">
+              <svg class="w-8 h-8 text-zinc-600 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"/></svg>
+              <p class="text-sm text-zinc-500">클릭하거나 드래그해서 사진 추가</p>
+              <p class="text-xs text-zinc-700 mt-1">JPG, PNG, WebP · 최대 5MB/장</p>
+              <input id="img-input" type="file" accept="image/*" multiple class="hidden">
+            </div>
+          </div>
+
+          <!-- 카테고리 -->
+          <div>
+            <label class="block text-xs font-semibold text-zinc-400 mb-2 tracking-wide uppercase">카테고리 <span class="text-lime-400">*</span></label>
+            <select id="category" class="w-full glass-input rounded px-4 py-2.5 text-sm">
+              <option value="">카테고리 선택</option>
+              <option value="MTB">MTB</option>
+              <option value="eMTB">eMTB</option>
+              <option value="eBike">eBike</option>
+              <option value="Parts">Parts</option>
+            </select>
+          </div>
+
+          <!-- 상태 -->
+          <div>
+            <label class="block text-xs font-semibold text-zinc-400 mb-2 tracking-wide uppercase">상태 <span class="text-lime-400">*</span></label>
+            <select id="condition" class="w-full glass-input rounded px-4 py-2.5 text-sm">
+              <option value="">상태 선택</option>
+              <option value="new">새 상품</option>
+              <option value="like_new">거의 새것</option>
+              <option value="good">양호</option>
+              <option value="fair">보통</option>
+            </select>
+          </div>
+
+          <!-- 제목 -->
+          <div>
+            <label class="block text-xs font-semibold text-zinc-400 mb-2 tracking-wide uppercase">제목 <span class="text-lime-400">*</span></label>
+            <input id="title" type="text" maxlength="100" placeholder="예: Trek Fuel EX 9.9 XO 2024" class="w-full glass-input rounded px-4 py-2.5 text-sm">
+            <p class="mt-1 text-xs text-zinc-600 text-right"><span id="cnt-title">0</span>/100</p>
+          </div>
+
+          <!-- 가격 -->
+          <div>
+            <label class="block text-xs font-semibold text-zinc-400 mb-2 tracking-wide uppercase">가격 (원) <span class="text-lime-400">*</span></label>
+            <input id="price" type="number" min="0" step="1000" placeholder="0" class="w-full glass-input rounded px-4 py-2.5 text-sm">
+          </div>
+
+          <!-- 거래 지역 -->
+          <div>
+            <label class="block text-xs font-semibold text-zinc-400 mb-2 tracking-wide uppercase">거래 지역</label>
+            <input id="location" type="text" maxlength="50" placeholder="예: 서울 강남구" class="w-full glass-input rounded px-4 py-2.5 text-sm">
+          </div>
+
+          <!-- 설명 -->
+          <div>
+            <label class="block text-xs font-semibold text-zinc-400 mb-2 tracking-wide uppercase">상품 설명</label>
+            <textarea id="description" rows="5" maxlength="2000" placeholder="상태, 사용기간, 구성품 등을 자세히 적어주세요." class="w-full glass-input rounded px-4 py-2.5 text-sm resize-none"></textarea>
+            <p class="mt-1 text-xs text-zinc-600 text-right"><span id="cnt-desc">0</span>/2000</p>
+          </div>
+
+          <button onclick="goToPreview()" class="w-full bg-lime-400 hover:bg-lime-300 active:bg-lime-500 text-zinc-950 font-bold py-3.5 px-4 rounded transition-colors text-sm active:scale-[0.98]">
+            다음 단계 →
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 2: Preview -->
+      <div id="step2" class="hidden">
+        <div class="glass-card rounded p-5 mb-6">
+          <p class="text-xs font-semibold text-zinc-500 tracking-widest uppercase mb-4">등록 확인</p>
+          <div id="preview-content" class="space-y-3 text-sm">
+          </div>
+        </div>
+
+        <div id="submit-error" class="hidden mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded text-sm text-red-400"></div>
+
+        <div class="flex gap-3">
+          <button onclick="backToForm()" class="flex-1 border border-zinc-600 text-zinc-300 hover:border-lime-400 hover:text-lime-400 font-semibold py-3 px-4 rounded transition-colors text-sm active:scale-[0.98]">
+            ← 수정하기
+          </button>
+          <button id="submit-btn" onclick="submitListing()" class="flex-1 bg-lime-400 hover:bg-lime-300 active:bg-lime-500 text-zinc-950 font-bold py-3 px-4 rounded transition-colors text-sm active:scale-[0.98]">
+            등록하기
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="footer-placeholder"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/common.js"></script>
+  <script>
+    let uploadedUrls = []
+    let currentUser = null
+
+    const CONDITION_LABEL_MAP = { new: '새 상품', like_new: '거의 새것', good: '양호', fair: '보통' }
+
+    // Auth guard
+    initPage().then(({ user }) => {
+      if (!user) { window.location.href = 'login.html?next=new-listing.html'; return }
+      currentUser = user
+    })
+
+    // Title/desc counters
+    document.getElementById('title').addEventListener('input', function() {
+      document.getElementById('cnt-title').textContent = this.value.length
+    })
+    document.getElementById('description').addEventListener('input', function() {
+      document.getElementById('cnt-desc').textContent = this.value.length
+    })
+
+    // Image upload
+    const dropZone = document.getElementById('drop-zone')
+    const imgInput = document.getElementById('img-input')
+
+    dropZone.addEventListener('click', () => imgInput.click())
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover') })
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'))
+    dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); handleFiles(e.dataTransfer.files) })
+    imgInput.addEventListener('change', (e) => handleFiles(e.target.files))
+
+    function renderThumbs() {
+      const grid = document.getElementById('img-grid')
+      grid.innerHTML = uploadedUrls.map((url, i) => `
+        <div class="img-thumb">
+          <img src="${url}" class="w-full h-full object-cover" alt="">
+          ${i === 0 ? '<div class="absolute bottom-0 left-0 right-0 text-center bg-lime-400/90 text-zinc-950 text-[10px] font-bold py-0.5">대표</div>' : ''}
+          <button onclick="removeImg(${i})" class="absolute top-1.5 right-1.5 w-7 h-7 bg-black/80 rounded-full text-white text-xs flex items-center justify-center hover:bg-red-600 active:bg-red-600 transition-colors">✕</button>
+        </div>`).join('')
+    }
+
+    function removeImg(idx) {
+      uploadedUrls.splice(idx, 1)
+      renderThumbs()
+    }
+
+    async function handleFiles(files) {
+      if (!currentUser) return
+      const remaining = 10 - uploadedUrls.length
+      const toUpload = Array.from(files).slice(0, remaining)
+
+      for (const file of toUpload) {
+        if (file.size > 5 * 1024 * 1024) { alert('파일 크기는 5MB 이하여야 합니다.'); continue }
+        if (!file.type.startsWith('image/')) continue
+
+        const ext = file.name.split('.').pop()
+        const path = `${currentUser.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+        const { error } = await _sb.storage.from('listing-images').upload(path, file, { cacheControl: '3600', upsert: false })
+        if (error) { alert('이미지 업로드 실패: ' + error.message); continue }
+
+        const { data: { publicUrl } } = _sb.storage.from('listing-images').getPublicUrl(path)
+        uploadedUrls.push(publicUrl)
+        renderThumbs()
+      }
+    }
+
+    function goToPreview() {
+      const errEl = document.getElementById('form-error')
+      errEl.classList.add('hidden')
+      const cat = document.getElementById('category').value
+      const cond = document.getElementById('condition').value
+      const title = document.getElementById('title').value.trim()
+      const price = parseInt(document.getElementById('price').value) || 0
+      const loc = document.getElementById('location').value.trim()
+      const desc = document.getElementById('description').value.trim()
+
+      if (!cat) { errEl.textContent = '카테고리를 선택해주세요.'; errEl.classList.remove('hidden'); return }
+      if (!cond) { errEl.textContent = '상태를 선택해주세요.'; errEl.classList.remove('hidden'); return }
+      if (!title) { errEl.textContent = '제목을 입력해주세요.'; errEl.classList.remove('hidden'); return }
+      if (!price || price <= 0) { errEl.textContent = '올바른 가격을 입력해주세요.'; errEl.classList.remove('hidden'); return }
+
+      document.getElementById('preview-content').innerHTML = `
+        ${uploadedUrls.length > 0 ? `<div class="grid grid-cols-3 gap-2 mb-4">${uploadedUrls.slice(0,3).map(u => `<img src="${u}" class="aspect-square object-cover rounded border border-white/10">`).join('')}</div>` : ''}
+        <div class="flex justify-between py-2 border-b border-white/[0.05]"><span class="text-zinc-500">카테고리</span><span class="text-white font-semibold">${cat}</span></div>
+        <div class="flex justify-between py-2 border-b border-white/[0.05]"><span class="text-zinc-500">상태</span><span class="text-white font-semibold">${CONDITION_LABEL_MAP[cond]}</span></div>
+        <div class="flex justify-between py-2 border-b border-white/[0.05]"><span class="text-zinc-500">제목</span><span class="text-white font-semibold text-right max-w-[60%]">${escHtml(title)}</span></div>
+        <div class="flex justify-between py-2 border-b border-white/[0.05]"><span class="text-zinc-500">가격</span><span class="text-lime-400 font-black font-mono">${formatPrice(price)}</span></div>
+        ${loc ? `<div class="flex justify-between py-2 border-b border-white/[0.05]"><span class="text-zinc-500">거래 지역</span><span class="text-white">${escHtml(loc)}</span></div>` : ''}
+        ${desc ? `<div class="py-2"><span class="text-zinc-500 block mb-1">설명</span><p class="text-zinc-300 text-sm leading-relaxed whitespace-pre-line">${escHtml(desc)}</p></div>` : ''}
+      `
+
+      document.getElementById('step1').classList.add('hidden')
+      document.getElementById('step2').classList.remove('hidden')
+      document.getElementById('step2-ind').classList.remove('opacity-40')
+      document.getElementById('step2-num').classList.replace('bg-zinc-700', 'bg-lime-400')
+      document.getElementById('step2-num').classList.replace('text-zinc-300', 'text-zinc-950')
+      document.getElementById('step2-label').classList.replace('text-zinc-400', 'text-lime-400')
+      document.getElementById('step1-ind').querySelector('div').classList.replace('bg-lime-400', 'bg-zinc-700')
+      document.getElementById('step1-ind').querySelector('div').classList.replace('text-zinc-950', 'text-zinc-300')
+      document.getElementById('step1-ind').querySelector('span').classList.replace('text-lime-400', 'text-zinc-400')
+      window.scrollTo(0, 0)
+    }
+
+    function backToForm() {
+      document.getElementById('step2').classList.add('hidden')
+      document.getElementById('step1').classList.remove('hidden')
+      document.getElementById('step2-ind').classList.add('opacity-40')
+      document.getElementById('step2-num').classList.replace('bg-lime-400', 'bg-zinc-700')
+      document.getElementById('step2-num').classList.replace('text-zinc-950', 'text-zinc-300')
+      document.getElementById('step2-label').classList.replace('text-lime-400', 'text-zinc-400')
+      document.getElementById('step1-ind').querySelector('div').classList.replace('bg-zinc-700', 'bg-lime-400')
+      document.getElementById('step1-ind').querySelector('div').classList.replace('text-zinc-300', 'text-zinc-950')
+      document.getElementById('step1-ind').querySelector('span').classList.replace('text-zinc-400', 'text-lime-400')
+    }
+
+    async function submitListing() {
+      if (!currentUser) return
+      const btn = document.getElementById('submit-btn')
+      const errEl = document.getElementById('submit-error')
+      btn.disabled = true
+      btn.innerHTML = `<span class="flex items-center justify-center gap-2"><svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>등록 중...</span>`
+      errEl.classList.add('hidden')
+
+      const title = document.getElementById('title').value.trim()
+      const slug = generateSlug(title)
+      const canDeleteAfter = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+
+      const payload = {
+        seller_id: currentUser.id,
+        title,
+        slug,
+        category: document.getElementById('category').value,
+        condition: document.getElementById('condition').value,
+        price: parseInt(document.getElementById('price').value) || 0,
+        location: document.getElementById('location').value.trim() || null,
+        description: document.getElementById('description').value.trim() || null,
+        image_urls: uploadedUrls,
+        status: 'active',
+        can_delete_after: canDeleteAfter,
+      }
+
+      const { data, error } = await _sb.from('listings').insert(payload).select('slug').single()
+      if (error) {
+        errEl.textContent = '등록 중 오류가 발생했습니다: ' + error.message
+        errEl.classList.remove('hidden')
+        btn.disabled = false; btn.textContent = '등록하기'
+        return
+      }
+      window.location.href = 'listing.html?slug=' + encodeURIComponent(data.slug)
+    }
+
+    function escHtml(str) {
+      return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    }
+    function formatPrice(price) {
+      return new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(price)
+    }
+    function generateSlug(title) {
+      const ts = Date.now().toString(36)
+      const ascii = title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+      return (ascii.length > 0 ? ascii.slice(0, 40) + '-' : '') + ts
+    }
+  </script>
+</body>
+</html>

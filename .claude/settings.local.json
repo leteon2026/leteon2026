@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Remove-Item -Force \"C:/Users/82103/leteon20260629/pin-bike-store/proxy.ts\")",
+      "Bash(Remove-Item -Force \"C:/Users/82103/leteon20260629/pin-bike-store/public/file.svg\")",
+      "Bash(Remove-Item -Force \"C:/Users/82103/leteon20260629/pin-bike-store/public/globe.svg\")",
+      "Bash(Remove-Item -Force \"C:/Users/82103/leteon20260629/pin-bike-store/public/next.svg\")",
+      "Bash(Remove-Item -Force \"C:/Users/82103/leteon20260629/pin-bike-store/public/vercel.svg\")"
+    ]
+  }
+}

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>내 계정 | LETEON 레테온</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @view-transition { navigation: auto; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { background-color: #050505; background-image: radial-gradient(ellipse 900px 700px at -10% 0%, rgba(163,230,53,0.07) 0%, transparent 100%); min-height: 100vh; display: flex; flex-direction: column; }
+    .glass-card { background: rgba(24,24,27,0.6); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
+    .glass-card-strong { background: rgba(9,9,11,0.75); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); border: 1px solid rgba(255,255,255,0.1); }
+    .glass-input { background: rgba(255,255,255,0.05); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); color: white; outline: none; transition: border-color 0.2s, background 0.2s; }
+    .glass-input:focus { border-color: rgba(163,230,53,0.6); background: rgba(255,255,255,0.07); }
+    .glass-input::placeholder { color: rgba(161,161,170,0.5); }
+    .line-clamp-1 { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; }
+    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #0a0a0a; } ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+    @media (max-width: 640px) { input, select, textarea { font-size: 16px !important; } }
+    @keyframes vt-fade-in { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes vt-slide-up { from { transform: translateY(10px); } to { transform: translateY(0); } }
+    ::view-transition-old(root) { animation: 160ms ease-in both vt-fade-in reverse; }
+    ::view-transition-new(root) { animation: 260ms cubic-bezier(0.25,0.46,0.45,0.94) both vt-fade-in, 260ms cubic-bezier(0.25,0.46,0.45,0.94) both vt-slide-up; }
+    ::view-transition-group(site-header) { animation: none; z-index: 100; }
+    ::view-transition-old(site-header) { display: none; }
+    ::view-transition-new(site-header) { animation: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .animate-spin { animation: spin 1s linear infinite; }
+  </style>
+</head>
+<body class="text-white antialiased">
+  <div id="header-placeholder"></div>
+
+  <main class="flex-1">
+    <div id="page-content" class="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+      <div class="text-center py-24 text-zinc-600">
+        <svg class="w-8 h-8 animate-spin mx-auto mb-3 text-lime-400/40" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+        불러오는 중...
+      </div>
+    </div>
+  </main>
+
+  <div id="footer-placeholder"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/common.js"></script>
+  <script>
+    let currentUser = null
+
+    async function toggleListingStatus(id, newStatus) {
+      const { error } = await _sb.from('listings').update({ status: newStatus }).eq('id', id)
+      if (error) { alert('오류: ' + error.message); return }
+      location.reload()
+    }
+
+    async function deleteListing(id) {
+      if (!confirm('매물을 삭제하시겠습니까?')) return
+      const { error } = await _sb.from('listings').update({ status: 'deleted' }).eq('id', id)
+      if (error) { alert('오류: ' + error.message); return }
+      location.reload()
+    }
+
+    async function saveProfile(e) {
+      e.preventDefault()
+      const btn = document.getElementById('save-btn')
+      btn.disabled = true; btn.textContent = '저장 중...'
+      const username = document.getElementById('prof-username').value.trim()
+      const bio = document.getElementById('prof-bio').value.trim()
+      const avatarInput = document.getElementById('prof-avatar')
+      let avatar_url = window._leteonProfile?.avatar_url
+
+      if (avatarInput.files[0]) {
+        const file = avatarInput.files[0]
+        const ext = file.name.split('.').pop()
+        const path = `${currentUser.id}/avatar.${ext}`
+        const { error: upErr } = await _sb.storage.from('listing-images').upload(path, file, { upsert: true })
+        if (!upErr) {
+          const { data: { publicUrl } } = _sb.storage.from('listing-images').getPublicUrl(path)
+          avatar_url = publicUrl + '?t=' + Date.now()
+        }
+      }
+
+      const { error } = await _sb.from('profiles').update({ username, bio, avatar_url }).eq('id', currentUser.id)
+      if (error) { alert('오류: ' + error.message); btn.disabled = false; btn.textContent = '저장'; return }
+      btn.textContent = '저장됨 ✓'
+      setTimeout(() => location.reload(), 800)
+    }
+
+    ;(async () => {
+      const { user, profile } = await initPage()
+      if (!user) { window.location.href = 'login.html?next=my.html'; return }
+      currentUser = user
+
+      const [{ data: fullProfile }, { data: listings }] = await Promise.all([
+        _sb.from('profiles').select('*').eq('id', user.id).single(),
+        _sb.from('listings').select('*').eq('seller_id', user.id).neq('status', 'deleted').order('created_at', { ascending: false })
+      ])
+
+      const p = fullProfile || {}
+      const displayName = p.username || user.email?.split('@')[0] || '사용자'
+      const initial = (displayName[0] || '?').toUpperCase()
+      const avatarEl = p.avatar_url
+        ? `<img src="${escHtml(p.avatar_url)}" alt="${escHtml(displayName)}" class="w-full h-full object-cover">`
+        : `<div class="w-full h-full flex items-center justify-center text-2xl font-black text-zinc-400">${initial}</div>`
+
+      const listingsHtml = !listings || listings.length === 0 ? `
+        <div class="text-center py-16">
+          <p class="text-zinc-400 text-base">등록한 매물이 없습니다.</p>
+          <a href="new-listing.html" class="mt-4 inline-block text-sm text-lime-400 hover:text-lime-300 font-medium">첫 매물 등록하기 →</a>
+        </div>` : listings.map(l => {
+        const canDeleteAfter = l.can_delete_after ? new Date(l.can_delete_after) : null
+        const canDelete = canDeleteAfter ? new Date() >= canDeleteAfter : false
+        const statusColorMap = { draft: 'text-yellow-400', active: 'text-lime-400', sold: 'text-blue-400', deleted: 'text-zinc-500' }
+        const statusLabelMap = { draft: '미결제', active: '판매중', sold: '판매완료', deleted: '삭제됨' }
+        return `
+          <div class="glass-card rounded p-4 flex items-start gap-3 hover:border-white/15 transition-colors duration-200">
+            ${l.image_urls?.[0] ? `<img src="${escHtml(l.image_urls[0])}" class="w-16 h-16 rounded object-cover flex-shrink-0 border border-white/10">` : `<div class="w-16 h-16 rounded bg-zinc-900 flex-shrink-0 border border-white/10 flex items-center justify-center"><svg class="w-6 h-6 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>`}
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-sm font-semibold ${statusColorMap[l.status] || 'text-zinc-400'}">${statusLabelMap[l.status] || l.status}</span>
+                <span class="text-zinc-600">·</span>
+                <span class="text-sm text-zinc-400">${escHtml(l.category)}</span>
+              </div>
+              <a href="listing.html?slug=${escHtml(l.slug)}" class="text-base font-semibold text-white hover:text-lime-400 transition-colors line-clamp-1">${escHtml(l.title)}</a>
+              <p class="text-sm font-black font-mono text-lime-400 mt-0.5">${formatPrice(l.price)}</p>
+              ${canDeleteAfter && !canDelete ? `<p class="text-xs text-zinc-500 mt-1">삭제 가능: ${canDeleteAfter.toLocaleDateString('ko-KR')}</p>` : ''}
+            </div>
+            <div class="flex flex-col gap-1.5 flex-shrink-0">
+              ${l.status === 'active' ? `<button onclick="toggleListingStatus('${l.id}', 'sold')" class="text-xs border border-blue-500/40 text-blue-400 hover:bg-blue-500/10 px-3 py-1.5 rounded transition-colors">판매완료</button>` : ''}
+              ${l.status === 'sold' ? `<button onclick="toggleListingStatus('${l.id}', 'active')" class="text-xs border border-lime-400/40 text-lime-400 hover:bg-lime-400/10 px-3 py-1.5 rounded transition-colors">판매중</button>` : ''}
+              ${canDelete ? `<button onclick="deleteListing('${l.id}')" class="text-xs border border-red-500/40 text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded transition-colors">삭제</button>` : ''}
+            </div>
+          </div>`
+      }).join('')
+
+      document.getElementById('page-content').innerHTML = `
+        <h1 class="text-2xl sm:text-3xl font-black text-white mb-6 sm:mb-8">내 계정</h1>
+
+        <div class="glass-card rounded p-6 mb-8">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="relative w-16 h-16 rounded-full bg-zinc-800 overflow-hidden border border-zinc-700 flex-shrink-0">
+              ${avatarEl}
+            </div>
+            <div>
+              <h2 class="text-lg font-bold text-white">${escHtml(displayName)}</h2>
+              <p class="text-sm text-zinc-400 mt-0.5">신뢰 ${p.heart_count || 0} · ${escHtml(user.email)}</p>
+            </div>
+          </div>
+          <form id="profile-form" class="space-y-4">
+            <div>
+              <label class="block text-xs font-semibold text-zinc-400 mb-1.5 tracking-wide uppercase">닉네임</label>
+              <input id="prof-username" type="text" maxlength="20" value="${escHtml(p.username || '')}" class="w-full glass-input rounded px-4 py-2.5 text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-zinc-400 mb-1.5 tracking-wide uppercase">자기소개</label>
+              <textarea id="prof-bio" rows="3" maxlength="300" class="w-full glass-input rounded px-4 py-2.5 text-sm resize-none">${escHtml(p.bio || '')}</textarea>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-zinc-400 mb-1.5 tracking-wide uppercase">프로필 사진</label>
+              <input id="prof-avatar" type="file" accept="image/*" class="text-sm text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-zinc-800 file:text-zinc-300 hover:file:bg-zinc-700 cursor-pointer">
+            </div>
+            <button id="save-btn" type="button" onclick="saveProfile(event)" class="inline-flex items-center justify-center bg-lime-400 hover:bg-lime-300 text-zinc-950 font-bold px-6 py-2.5 rounded transition-colors text-sm active:scale-[0.96]">
+              저장
+            </button>
+          </form>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-black text-white">내 매물</h2>
+            <a href="new-listing.html" class="text-sm text-lime-400 hover:text-lime-300 font-medium">+ 매물 등록</a>
+          </div>
+          <div class="space-y-3">${listingsHtml}</div>
+        </div>
+      `
+
+      document.getElementById('profile-form')?.addEventListener('submit', (e) => { e.preventDefault(); saveProfile(e) })
+    })()
+
+    function escHtml(str) { return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') }
+    function formatPrice(p) { return new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(p) }
+  </script>
+</body>
+</html>

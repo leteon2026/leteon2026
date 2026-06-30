@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>매물 | LETEON 레테온</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @view-transition { navigation: auto; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { background-color: #050505; background-image: radial-gradient(ellipse 900px 700px at -10% 0%, rgba(163,230,53,0.07) 0%, transparent 100%); min-height: 100vh; display: flex; flex-direction: column; }
+    .glass-card { background: rgba(24,24,27,0.6); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
+    .glass-card-strong { background: rgba(9,9,11,0.75); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); border: 1px solid rgba(255,255,255,0.1); }
+    .glass-input { background: rgba(255,255,255,0.05); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); color: white; outline: none; transition: border-color 0.2s; }
+    .glass-input:focus { border-color: rgba(163,230,53,0.6); }
+    .line-clamp-1 { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; }
+    .line-clamp-2 { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #0a0a0a; } ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+    @media (max-width: 640px) { input, select, textarea { font-size: 16px !important; } }
+    @keyframes vt-fade-in { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes vt-slide-up { from { transform: translateY(10px); } to { transform: translateY(0); } }
+    ::view-transition-old(root) { animation: 160ms ease-in both vt-fade-in reverse; }
+    ::view-transition-new(root) { animation: 260ms cubic-bezier(0.25,0.46,0.45,0.94) both vt-fade-in, 260ms cubic-bezier(0.25,0.46,0.45,0.94) both vt-slide-up; }
+    ::view-transition-group(site-header) { animation: none; z-index: 100; }
+    ::view-transition-old(site-header) { display: none; }
+    ::view-transition-new(site-header) { animation: none; }
+    @media (prefers-reduced-motion: reduce) { ::view-transition-old(*), ::view-transition-new(*), ::view-transition-group(*) { animation-duration: 0s !important; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .animate-spin { animation: spin 1s linear infinite; }
+    .cat-btn { transition: all 0.15s; }
+    .cat-btn.active { background: rgba(163,230,53,0.15); border-color: rgba(163,230,53,0.5); color: #a3e635; }
+  </style>
+</head>
+<body class="text-white antialiased">
+  <div id="header-placeholder"></div>
+
+  <main class="flex-1">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+      <div class="flex items-center justify-between mb-5">
+        <div>
+          <h1 id="page-title" class="text-2xl sm:text-4xl font-black text-white">전체 매물</h1>
+          <p id="page-count" class="mt-1 text-sm text-zinc-400">0개의 매물</p>
+        </div>
+        <a href="new-listing.html" class="bg-lime-400 text-black text-xs sm:text-sm font-bold px-3 py-2 sm:px-4 sm:py-2.5 rounded hover:bg-lime-300 transition-colors whitespace-nowrap active:scale-[0.96]">
+          + 매물 등록
+        </a>
+      </div>
+
+      <!-- Category Filter -->
+      <div class="mb-8 flex flex-wrap gap-2">
+        <button class="cat-btn border border-white/10 text-zinc-400 hover:border-white/20 hover:text-white text-xs font-semibold px-4 py-1.5 rounded-full" data-category="">전체</button>
+        <button class="cat-btn border border-white/10 text-zinc-400 hover:border-white/20 hover:text-white text-xs font-semibold px-4 py-1.5 rounded-full" data-category="MTB">MTB</button>
+        <button class="cat-btn border border-white/10 text-zinc-400 hover:border-white/20 hover:text-white text-xs font-semibold px-4 py-1.5 rounded-full" data-category="eMTB">eMTB</button>
+        <button class="cat-btn border border-white/10 text-zinc-400 hover:border-white/20 hover:text-white text-xs font-semibold px-4 py-1.5 rounded-full" data-category="eBike">eBike</button>
+        <button class="cat-btn border border-white/10 text-zinc-400 hover:border-white/20 hover:text-white text-xs font-semibold px-4 py-1.5 rounded-full" data-category="Parts">Parts</button>
+      </div>
+
+      <!-- Listings Grid -->
+      <div id="listings-grid" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+        <div class="col-span-full text-center py-16 text-zinc-600">
+          <svg class="w-8 h-8 animate-spin mx-auto mb-3 text-lime-400/40" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          불러오는 중...
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="footer-placeholder"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/common.js"></script>
+  <script>
+    let currentCategory = new URLSearchParams(location.search).get('category') || ''
+
+    async function loadListings(cat) {
+      const grid = document.getElementById('listings-grid')
+      grid.innerHTML = `<div class="col-span-full text-center py-16 text-zinc-600"><svg class="w-8 h-8 animate-spin mx-auto mb-3 text-lime-400/40" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>불러오는 중...</div>`
+
+      let query = _sb.from('listings').select('*, profiles(id, username, avatar_url)').eq('status', 'active').order('created_at', { ascending: false })
+      if (cat) query = query.eq('category', cat)
+      const { data: listings } = await query
+
+      document.getElementById('page-title').textContent = cat || '전체 매물'
+      document.getElementById('page-count').textContent = `${listings?.length ?? 0}개의 매물`
+
+      if (!listings || listings.length === 0) {
+        grid.innerHTML = `<div class="col-span-full text-center py-24"><p class="text-zinc-400 font-medium">등록된 매물이 없습니다.</p><div class="mt-4"><a href="new-listing.html" class="text-sm text-lime-400 hover:text-lime-300 font-medium">첫 번째 매물을 등록해보세요 →</a></div></div>`
+        return
+      }
+      grid.innerHTML = listings.map(l => listingCardHtml(l)).join('')
+    }
+
+    function updateCatButtons(cat) {
+      document.querySelectorAll('.cat-btn').forEach(btn => {
+        const v = btn.dataset.category
+        btn.classList.toggle('active', v === cat)
+      })
+    }
+
+    document.querySelectorAll('.cat-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentCategory = btn.dataset.category
+        updateCatButtons(currentCategory)
+        const url = new URL(location.href)
+        if (currentCategory) url.searchParams.set('category', currentCategory)
+        else url.searchParams.delete('category')
+        history.replaceState({}, '', url)
+        loadListings(currentCategory)
+      })
+    })
+
+    ;(async () => {
+      await initPage()
+      updateCatButtons(currentCategory)
+      loadListings(currentCategory)
+    })()
+  </script>
+</body>
+</html>

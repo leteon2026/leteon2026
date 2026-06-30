@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>계정 설정 | LETEON 레테온</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @view-transition { navigation: auto; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { background-color: #050505; background-image: radial-gradient(ellipse 900px 700px at -10% 0%, rgba(163,230,53,0.07) 0%, transparent 100%); min-height: 100vh; display: flex; flex-direction: column; }
+    .glass-card { background: rgba(24,24,27,0.6); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
+    .glass-card-strong { background: rgba(9,9,11,0.75); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); border: 1px solid rgba(255,255,255,0.1); }
+    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #0a0a0a; } ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+    @keyframes vt-fade-in { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes vt-slide-up { from { transform: translateY(10px); } to { transform: translateY(0); } }
+    ::view-transition-old(root) { animation: 160ms ease-in both vt-fade-in reverse; }
+    ::view-transition-new(root) { animation: 260ms cubic-bezier(0.25,0.46,0.45,0.94) both vt-fade-in, 260ms cubic-bezier(0.25,0.46,0.45,0.94) both vt-slide-up; }
+    ::view-transition-group(site-header) { animation: none; z-index: 100; }
+    ::view-transition-old(site-header) { display: none; }
+    ::view-transition-new(site-header) { animation: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .animate-spin { animation: spin 1s linear infinite; }
+  </style>
+</head>
+<body class="text-white antialiased">
+  <div id="header-placeholder"></div>
+
+  <main class="flex-1">
+    <div id="page-content" class="max-w-2xl mx-auto px-4 sm:px-6 py-10">
+      <div class="text-center py-24 text-zinc-600">
+        <svg class="w-8 h-8 animate-spin mx-auto mb-3 text-lime-400/40" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+        불러오는 중...
+      </div>
+    </div>
+  </main>
+
+  <div id="footer-placeholder"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/common.js"></script>
+  <script>
+    let currentUser = null
+    let showDeactivateConfirm = false
+
+    async function handleDeactivate() {
+      if (!showDeactivateConfirm) {
+        showDeactivateConfirm = true
+        document.getElementById('deactivate-box').classList.remove('hidden')
+        document.getElementById('deactivate-btn').classList.add('hidden')
+        return
+      }
+    }
+
+    async function confirmDeactivate() {
+      const btn = document.getElementById('confirm-deactivate-btn')
+      const errEl = document.getElementById('deactivate-error')
+      btn.disabled = true; btn.textContent = '처리 중...'
+      errEl.classList.add('hidden')
+
+      // Soft delete via profile update
+      const { error } = await _sb.from('profiles').update({ deleted_at: new Date().toISOString() }).eq('id', currentUser.id)
+      if (error) {
+        errEl.textContent = '탈퇴 처리 중 오류가 발생했습니다.'
+        errEl.classList.remove('hidden')
+        btn.disabled = false; btn.textContent = '탈퇴 확인'
+        return
+      }
+      // Also hide all listings
+      await _sb.from('listings').update({ status: 'deleted' }).eq('seller_id', currentUser.id).eq('status', 'active')
+      await _sb.auth.signOut()
+      window.location.href = 'index.html'
+    }
+
+    ;(async () => {
+      const { user } = await initPage()
+      if (!user) { window.location.href = 'login.html?next=account.html'; return }
+      currentUser = user
+
+      const { data: profile } = await _sb.from('profiles').select('username, email, phone, created_at, heart_count, deleted_at').eq('id', user.id).single()
+      if (profile?.deleted_at) { window.location.href = 'index.html'; return }
+
+      const joinedDate = profile?.created_at ? new Date(profile.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }) : null
+
+      document.getElementById('page-content').innerHTML = `
+        <div class="flex items-center gap-3 mb-8">
+          <div class="w-10 h-10 rounded bg-lime-400/10 flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-lime-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          </div>
+          <div>
+            <h1 class="text-2xl font-black text-white">내 계정</h1>
+            <p class="text-xs text-zinc-500 mt-0.5">계정 정보 및 설정</p>
+          </div>
+        </div>
+
+        <div class="glass-card rounded p-6 mb-4">
+          <p class="text-[10px] font-bold text-zinc-500 tracking-[0.2em] uppercase mb-5">계정 정보</p>
+          <dl class="space-y-4">
+            <div class="flex items-center justify-between py-2 border-b border-white/[0.04]">
+              <dt class="text-sm text-zinc-500">닉네임</dt>
+              <dd class="text-sm font-semibold text-white">${escHtml(profile?.username || '—')}</dd>
+            </div>
+            <div class="flex items-center justify-between py-2 border-b border-white/[0.04]">
+              <dt class="text-sm text-zinc-500">이메일</dt>
+              <dd class="text-sm text-white">${escHtml(user.email)}</dd>
+            </div>
+            <div class="flex items-center justify-between py-2 border-b border-white/[0.04]">
+              <dt class="text-sm text-zinc-500">전화번호</dt>
+              <dd class="text-sm text-white">${escHtml(profile?.phone || '—')}</dd>
+            </div>
+            <div class="flex items-center justify-between py-2 border-b border-white/[0.04]">
+              <dt class="text-sm text-zinc-500">신뢰 수</dt>
+              <dd class="text-sm text-white font-mono">${profile?.heart_count ?? 0}</dd>
+            </div>
+            ${joinedDate ? `<div class="flex items-center justify-between py-2"><dt class="text-sm text-zinc-500">가입일</dt><dd class="text-sm text-zinc-400">${joinedDate}</dd></div>` : ''}
+          </dl>
+          <div class="mt-5 pt-4 border-t border-white/[0.06] flex gap-4">
+            <a href="my.html" class="text-sm text-lime-400 hover:text-lime-300 font-medium transition-colors">프로필 수정 →</a>
+          </div>
+        </div>
+
+        <div class="glass-card rounded p-5 mb-4 flex items-center justify-between">
+          <div>
+            <p class="text-sm font-semibold text-white">내 매물 관리</p>
+            <p class="text-xs text-zinc-500 mt-0.5">등록한 매물을 확인하고 수정할 수 있어요</p>
+          </div>
+          <a href="my.html" class="text-xs text-zinc-400 hover:text-white transition-colors flex items-center gap-1">
+            보기 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+
+        <div class="glass-card rounded p-6 mt-6">
+          <p class="text-[10px] font-bold text-zinc-500 tracking-[0.2em] uppercase mb-3">위험 구역</p>
+          <p class="text-sm text-zinc-400 mb-4">탈퇴하면 계정이 비활성화됩니다. 등록된 매물은 숨겨지며 이 작업은 되돌리기 어렵습니다.</p>
+
+          <div id="deactivate-error" class="hidden mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded text-sm text-red-400"></div>
+
+          <button id="deactivate-btn" onclick="handleDeactivate()" class="text-sm text-red-400 hover:text-red-300 font-medium border border-red-500/30 hover:border-red-400/50 px-4 py-2 rounded transition-colors">
+            회원 탈퇴
+          </button>
+
+          <div id="deactivate-box" class="hidden p-4 bg-red-500/5 border border-red-500/20 rounded">
+            <p class="text-sm font-semibold text-white mb-1">정말 탈퇴하시겠습니까?</p>
+            <p class="text-xs text-zinc-400 mb-4">탈퇴 후에는 동일한 이메일로 재가입이 제한될 수 있습니다.</p>
+            <div class="flex gap-3">
+              <button id="confirm-deactivate-btn" onclick="confirmDeactivate()" class="text-sm font-semibold text-red-400 border border-red-500/40 hover:border-red-400/60 px-4 py-2 rounded transition-colors disabled:opacity-50">탈퇴 확인</button>
+              <button onclick="document.getElementById('deactivate-box').classList.add('hidden'); document.getElementById('deactivate-btn').classList.remove('hidden'); showDeactivateConfirm=false" class="text-sm text-zinc-400 hover:text-white px-4 py-2 transition-colors">취소</button>
+            </div>
+          </div>
+        </div>
+      `
+    })()
+
+    function escHtml(str) { return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') }
+  </script>
+</body>
+</html>
